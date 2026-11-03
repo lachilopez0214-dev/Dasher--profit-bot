@@ -22,6 +22,9 @@ import android.webkit.WebResourceResponse
 
 class MainActivity : ComponentActivity() {
  inner class NativeBridge {
+  @JavascriptInterface fun capturedOffers(): String =
+   getSharedPreferences("captured_offers", MODE_PRIVATE).getString("items", "[]") ?: "[]"
+
   @JavascriptInterface fun configure(minimum: Double, maximum: Double, ratio: Double, enabled: Boolean) {
    if (!minimum.isFinite() || !maximum.isFinite() || !ratio.isFinite() || minimum < 0 || maximum <= 0 || ratio < 0) return
    getSharedPreferences("offer_settings", MODE_PRIVATE).edit()
