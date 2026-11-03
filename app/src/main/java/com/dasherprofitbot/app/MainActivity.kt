@@ -1,5 +1,11 @@
 package com.dasherprofitbot.app
 
+import android.webkit.JavascriptInterface
+import android.provider.Settings
+import android.content.Intent
+import android.os.Build
+import android.app.NotificationManager
+import android.content.ComponentName
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -15,6 +21,22 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 
 class MainActivity : ComponentActivity() {
+ inner class NativeBridge {
+  @JavascriptInterface fun configure(minimum: Double, maximum: Double, ratio: Double, enabled: Boolean) {
+   if (!minimum.isFinite() || !maximum.isFinite() || !ratio.isFinite() || minimum < 0 || maximum <= 0 || ratio < 0) return
+   getSharedPreferences("offer_settings", MODE_PRIVATE).edit()
+    .putFloat("minimum", minimum.toFloat()).putFloat("maximum", maximum.toFloat())
+    .putFloat("ratio", ratio.toFloat()).putBoolean("enabled", enabled).apply()
+  }
+  @JavascriptInterface fun openNotificationAccess() {
+   runOnUiThread { startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
+  }
+  @JavascriptInterface fun notificationAccessEnabled(): Boolean {
+   val enabled = Settings.Secure.getString(contentResolver, "enabled_notification_listeners") ?: ""
+   return enabled.split(":").any { ComponentName.unflattenFromString(it)?.packageName == packageName }
+  }
+ }
+
  private lateinit var webView: WebView
  private var pendingOrigin: String? = null
  private var pendingCallback: GeolocationPermissions.Callback? = null
@@ -30,6 +52,7 @@ class MainActivity : ComponentActivity() {
   setContentView(webView)
   val loader = WebViewAssetLoader.Builder().addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this)).build()
   webView.settings.javaScriptEnabled = true
+  webView.addJavascriptInterface(NativeBridge(), "DasherNative")
   webView.settings.domStorageEnabled = true
   webView.settings.setGeolocationEnabled(true)
   webView.webViewClient = object : WebViewClientCompat() {
