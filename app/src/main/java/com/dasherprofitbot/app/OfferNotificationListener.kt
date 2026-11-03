@@ -1,5 +1,7 @@
 package com.dasherprofitbot.app
 
+import org.json.JSONArray
+import org.json.JSONObject
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -33,6 +35,14 @@ class OfferNotificationListener : NotificationListenerService() {
   val max = prefs.getFloat("maximum", 1f).toDouble()
   val ratio = prefs.getFloat("ratio", 2f).toDouble()
   if (pay < min || miles > max || pay / miles < ratio) return
+  // Keep only numeric offer metrics on-device; never store notification text.
+  val history = getSharedPreferences("captured_offers", MODE_PRIVATE)
+  val old = try { JSONArray(history.getString("items", "[]")) } catch (_: Exception) { JSONArray() }
+  val next = JSONArray()
+  next.put(JSONObject().put("platform", platform).put("pay", pay).put("miles", miles)
+   .put("perMile", pay / miles).put("good", true).put("time", System.currentTimeMillis()))
+  for (i in 0 until minOf(old.length(), 49)) next.put(old.get(i))
+  history.edit().putString("items", next.toString()).apply()
   val manager = getSystemService(NotificationManager::class.java)
   val channel = "profitable_offers"
   manager.createNotificationChannel(NotificationChannel(channel, "Ofertas rentables", NotificationManager.IMPORTANCE_HIGH))
