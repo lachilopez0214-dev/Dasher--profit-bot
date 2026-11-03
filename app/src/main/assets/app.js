@@ -7,3 +7,18 @@ $('captureSave').onclick=()=>{const enabled=$('capture').checked;save('captureEn
 const originalSave=$('save').onclick;
 $('save').onclick=()=>{originalSave();if(bridge)bridge.configure(settings.minimum,settings.maximum,settings.ratio,$('capture').checked)};
 syncCapture();
+
+function renderBestOrders(){
+ const box=$('bestOrders');box.replaceChildren();
+ if(!bridge){box.textContent='Disponible en Android';return}
+ let items=[];try{items=JSON.parse(bridge.capturedOffers())}catch{}
+ if(!Array.isArray(items)||!items.length){box.textContent='Todavía no se han detectado órdenes rentables';return}
+ if(settings.sort)items.sort((a,b)=>b.perMile-a.perMile);
+ for(const o of items.slice(0,25)){
+  const el=document.createElement('div');el.className='offer good';
+  el.textContent=o.platform+' · '+usd(o.pay)+' · '+o.miles+' mi · '+usd(o.perMile)+'/mi';
+  box.appendChild(el);
+ }
+}
+$('refreshBest').onclick=()=>{syncCapture();renderBestOrders()};
+renderBestOrders();
